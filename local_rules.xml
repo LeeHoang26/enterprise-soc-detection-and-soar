@@ -1,0 +1,46 @@
+<!-- Wazuh Custom Detection Rules for Active Directory Attacks -->
+<!-- Location on Central SIEM Server: /var/ossec/etc/rules/local_rules.xml -->
+
+<group name="windows,active_directory_attacks,">
+
+  <!-- 1. Kerberoasting Attack Detection (MITRE T1558.003) -->
+  <!-- Target Event: Windows Security Event ID 4769 (Kerberos Service Ticket Operation) -->
+  <!-- Forensic Indicator: Ticket Encryption Type 0x17 (RC4-HMAC) for SPN services -->
+  <rule id="100100" level="12">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.ticketEncryptionType">^0x17$</field>
+    <description>SOC ALERT: Active Kerberoasting Request Detected (MITRE T1558.003) targeting $(win.eventdata.serviceName) by account $(win.eventdata.targetUserName)</description>
+    <mitre>
+      <id>T1558.003</id>
+    </mitre>
+  </rule>
+
+  <!-- 2. AS-REP Roasting Attack Detection (MITRE T1558.004) -->
+  <!-- Target Event: Windows Security Event ID 4768 (Kerberos Authentication Service / TGT) -->
+  <!-- Forensic Indicator: Pre-Authentication Type 0 (Disabled Pre-Auth), Encryption 0x17 -->
+  <rule id="100101" level="12">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4768$</field>
+    <field name="win.eventdata.preAuthType">^0$</field>
+    <field name="win.eventdata.ticketEncryptionType">^0x17$</field>
+    <description>SOC ALERT: AS-REP Roasting Attack Detected (MITRE T1558.004) targeting account without pre-auth $(win.eventdata.targetUserName)</description>
+    <mitre>
+      <id>T1558.004</id>
+    </mitre>
+  </rule>
+
+  <!-- 3. DCSync Credential Extraction Detection (MITRE T1003.006) -->
+  <!-- Target Event: Windows Security Event ID 4662 (Directory Service Access) -->
+  <!-- Forensic Indicator: Replicating Directory Changes GUID: 1131f6aa-9c07-11d1-f79f-00c04fc2dcd2 -->
+  <rule id="100102" level="14">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4662$</field>
+    <field name="win.eventdata.properties" type="pcre2">(?i)1131f6aa-9c07-11d1-f79f-00c04fc2dcd2</field>
+    <description>SOC CRITICAL: Unauthorized DCSync Domain Replication Detected (MITRE T1003.006) initiated by $(win.eventdata.subjectUserName)</description>
+    <mitre>
+      <id>T1003.006</id>
+    </mitre>
+  </rule>
+
+</group>
